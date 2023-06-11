@@ -1,0 +1,170 @@
+﻿@page "/forms/edit/{id:long}"
+@page "/forms/create"
+@layout EmptyLayout
+@inherits OwningComponentBase<DataContext>
+@*@using Microsoft.Extensions.DependencyInjection*@
+@*@implements IDisposable*@
+
+<link href="/blazorValidation.css" rel="stylesheet" />
+
+<h4 class="bg-@Theme text-center text-white p-2">@Mode</h4>
+
+<EditForm Model="PersonData" OnValidSubmit="HandleValidSubmit" >
+    <DataAnnotationsValidator />
+    <DeptStateValidator DepartmentId="2" State="CA" />
+    @if (Mode == "Edit")
+    {
+        <div class="form-group">
+            <label>ID</label>
+            <InputNumber class="form-control"
+                     @bind-Value="PersonData.PersonId" readonly />
+        </div>
+    }
+    <div class="form-group">
+        <label>Firstname</label>
+        <ValidationMessage For="@(() => PersonData.Firstname)" />
+        <InputText class="form-control" @bind-Value="PersonData.Firstname" />
+    </div>
+    <div class="form-group">
+        <label>Surname</label>
+        <ValidationMessage For="@(() => PersonData.Surname)" />
+        <InputText class="form-control" @bind-Value="PersonData.Surname" />
+    </div>
+    <div class="form-group">
+        <label>Deptartment</label>
+        <ValidationMessage For="@(() => PersonData.DepartmentId)" />
+        <CustomSelect TValue="long" Values="Departments"
+                      Parser="@((string str) => long.Parse(str))"
+                      @bind-Value="PersonData.DepartmentId">
+            <option selected disabled value="0">Choose a Department</option>
+        </CustomSelect>
+    </div>
+    <div class="form-group">
+        <label>Location</label>
+        <ValidationMessage For="@(() => PersonData.LocationId)" />
+        <CustomSelect TValue="long" Values="Locations"
+                      Parser="@((string str) => long.Parse(str))"
+                      @bind-Value="PersonData.LocationId">
+            <option selected disabled value="0">Choose a Location</option>
+        </CustomSelect>
+    </div>
+    <div class="text-center">
+        <ValidButton type="submit" BtnTheme="@Theme">Save</ValidButton>
+        @*<button type="submit" class="btn btn-@Theme mt-2">Save</button>*@
+        <NavLink class="btn btn-secondary mt-2" href="/forms">Back</NavLink>
+    </div>
+</EditForm>
+
+@*<h4 class="bg-primary text-center text-white p-2">Edit</h4>
+<h6 class="bg-info text-center text-white p-2">@FormSubmitMessage</h6>*@
+@*<FormSpy PersonData="PersonData">*@
+    @*<EditForm Model="PersonData" OnValidSubmit="HandleValidSubmit"
+              OnInvalidSubmit="HandleInvalidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="form-group">
+            <label>Person ID</label>
+            <InputNumber class="form-control"
+                         @bind-Value="PersonData.PersonId" disabled />
+        </div>
+        <div class="form-group">
+            <label>Firstname</label>
+            <ValidationMessage For="@(() => PersonData.Firstname)" />
+            <InputText class="form-control" @bind-Value="PersonData.Firstname" />
+        </div>
+        <div class="form-group">
+            <label>Surname</label>
+            <ValidationMessage For="@(() => PersonData.Surname)" />
+            <InputText class="form-control" @bind-Value="PersonData.Surname" />
+        </div>        
+        <div class="form-group">
+            <label>Dept ID</label>
+            <ValidationMessage For="@(() => PersonData.DepartmentId)" />
+            <CustomSelect TValue="long" Values="Departments"
+                          Parser="@((string str) => long.Parse(str))"
+                          @bind-Value="PersonData.DepartmentId">
+                <option selected disabled value="0">Choose a Department</option>
+            </CustomSelect>
+        </div>
+        <div class="form-group">
+            <label>Location ID</label>
+            <ValidationMessage For="@(() => PersonData.LocationId)" />
+            <CustomSelect TValue="long" Values="Locations"
+                          Parser="@((string str) => long.Parse(str))"
+                          @bind-Value="PersonData.LocationId">
+                <option selected disabled value="0">Choose a Location</option>
+            </CustomSelect>
+        </div>
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary mt-2">Submit</button>
+            <NavLink class="btn btn-secondary" href="/forms">Back</NavLink>
+        </div>
+    </EditForm>*@
+    @*<h4 class="text-center">Form Placeholder</h4>
+    <div class="text-center">
+        <NavLink class="btn btn-secondary mt-2" href="/forms">Back</NavLink>
+    </div>*@
+@*</FormSpy>*@
+
+@code {
+    [Inject]
+    public NavigationManager? NavManager { get; set; }
+
+    DataContext? Context => Service;
+
+    //[Inject]
+    //DataContext? Context { get; set; }
+
+    [Parameter]
+    public long Id { get; set; }
+
+    public Person PersonData { get; set; } = new();
+
+    public IDictionary<string, long> Departments { get; set; } = new Dictionary<string, long>();
+
+    public IDictionary<string, long> Locations { get; set; } = new Dictionary<string, long>();
+
+    protected async override Task OnParametersSetAsync()
+    {
+        if (Context != null)
+        {
+            if (Mode == "Edit")
+            {
+                PersonData = await Context.People.FindAsync(Id) ?? new Person();
+            }
+            //PersonData = await Context.People.FindAsync(Id) ?? new Person();
+            Departments = await Context.Departments.ToDictionaryAsync(d => d.Name, d => d.Departmentid);
+            Locations = await Context.Locations.ToDictionaryAsync(l => $"{l.City}, {l.State}", l => l.LocationId);
+        }
+    }
+
+    public string Theme => Id == 0 ? "primary" : "warning";
+    public string Mode => Id == 0 ? "Create" : "Edit";
+
+    public async Task HandleValidSubmit()
+    {
+        if (Context != null)
+        {
+            if (Mode == "Create")
+            {
+                Context.Add(PersonData);
+            }
+            await Context.SaveChangesAsync();
+            NavManager?.NavigateTo("/forms");
+        }
+    }
+
+    //public string FormSubmitMessage { get; set; } = "Form Data Not Submitted";
+
+    //public void HandleValidSubmit() => FormSubmitMessage = "Valid Data Submitted";
+
+    //public void HandleInvalidSubmit() => FormSubmitMessage = "Invalid Data Submitted";
+
+    //public void Dispose()
+    //{
+    //    if (Context != null)
+    //    {
+    //        Context.Entry(PersonData).State = EntityState.Detached;
+    //    }
+    //}
+}
